@@ -1,0 +1,60 @@
+# Lancer le docker-compose -> docker compose up -d
+
+# Liste des différents conteneurs
+version: '3.1'
+
+services:
+  # Conteneur pour mongoDB
+  mongodb:
+    # Image du conteneur
+    image: mongo
+    container_name: mongodb
+    restart: always
+    # Ouverture du port Mongo
+    ports:
+      - 27017:27017
+    # Volume pour persister mes données
+    volumes:
+      - "./data/db:/data/db"
+    # Déploiement dans un reseau
+    networks:
+      - app-mongo-VNet
+
+  # Conteneur de mon ui pour mongodb
+  mongoui:
+    # Image de mon conteneur
+    image: mongo-express
+    restart: always
+    # Port du conteneur
+    ports:
+      - 8081:8081
+    environment:
+      # Renseigne le nom du service contenant la bdd
+      ME_CONFIG_MONGODB_SERVER: mongodb
+    #  Dépendance de mon conteneur
+    depends_on:
+      - mongodb
+    networks:
+      - app-mongo-VNet
+
+  # Conteneur de mon application Flask
+  monapp:
+    # Construire à la volée mon image
+    build: .
+    # Ouverture des ports du conteneur de mon application
+    ports:
+      - 9001:9001
+    networks:
+      - app-mongo-VNet
+    
+    depends_on:
+      - mongodb
+
+    # Ajout d'une variable pour récupérer l'IP du conteneur MongoDB
+    environment:
+      - MONGO_HOST=mongodb
+
+# Fabrique mon reseau
+networks:
+  app-mongo-VNet:
+    driver: bridge
